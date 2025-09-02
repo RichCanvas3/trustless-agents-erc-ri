@@ -79,7 +79,7 @@ cp .env.example .env
 # Edit .env with your settings
 
 # Deploy to Sepolia testnet
-forge script script/Deploy.s.sol --rpc-url sepolia --broadcast --verify
+forge script script/Deploy.s.sol --rpc-url sepolia --broadcast --verify --slow
 
 # Deploy to Base Sepolia
 forge script script/Deploy.s.sol --rpc-url base_sepolia --broadcast --verify
@@ -272,3 +272,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Built with ❤️ by ChaosChain for the open AI agentic economy**
+
+
+
+=== Deployment Summary ===
+  IdentityRegistry: 0xcf1a45217b42b743344be2C757EC84e57a5BFe1E
+  ReputationRegistry: 0x4776Be7365050880a1c91B6CE155fFCfF41f0025
+  ValidationRegistry: 0xA9883eDe30F405fe1f56AF58392722c8829AE0B5
+  Validation expiration slots: 1000
