@@ -59,7 +59,8 @@ contract ReputationRegistry is IReputationRegistry {
         uint8 score,
         bytes32 tag1,
         bytes32 tag2,
-        string calldata uri,
+        string calldata fileuri,
+        bytes32 filehash,
         bytes calldata feedbackAuth
     ) external override {
         require(score <= 100, "score>100");
@@ -71,6 +72,8 @@ contract ReputationRegistry is IReputationRegistry {
         //   address clientAddress,
         //   uint64 indexLimit,
         //   uint64 expiry,
+        //   uint64 chainId,
+        //   address identityRegistry,
         //   address signer,          // owner or operator
         //   bytes   signature        // EOA or ERC-1271 signature over authHash
         // )
@@ -79,6 +82,8 @@ contract ReputationRegistry is IReputationRegistry {
             address clientAddress,
             uint64 indexLimit,
             uint64 expiry,
+            uint64 authChainId,
+            address authIdentityRegistry,
             address signer,
             bytes memory signature
         ) = _decodeAuth(feedbackAuth);
@@ -86,16 +91,18 @@ contract ReputationRegistry is IReputationRegistry {
         require(authAgentId == agentId, "auth agentId mismatch");
         require(clientAddress == msg.sender, "client != msg.sender");
         require(block.timestamp < expiry, "auth expired");
+        require(authChainId == _chainId, "chainId mismatch");
+        require(authIdentityRegistry == address(_idRegistry), "idRegistry mismatch");
 
-        // Ensure indexLimit authorizes this new index
+        // Ensure indexLimit authorizes this new index (indexLimit ≥ nextIndex)
         uint64 nextIndex = uint64(_feedback[agentId][clientAddress].length);
-        require(indexLimit > nextIndex, "indexLimit too low");
+        require(indexLimit >= nextIndex, "indexLimit too low");
 
         // Verify signer is owner/operator of agentId
         _requireOwnerOrOperator(agentId, signer);
 
         // Verify signature (EOA or 1271) over domain-separated hash
-        bytes32 authHash = _feedbackAuthHash(agentId, clientAddress, indexLimit, expiry, signer);
+        bytes32 authHash = _feedbackAuthHash(agentId, clientAddress, indexLimit, expiry, authChainId, authIdentityRegistry, signer);
         _verifySignatureFlexible(signer, authHash, signature);
 
         // Store feedback
@@ -109,7 +116,7 @@ contract ReputationRegistry is IReputationRegistry {
         // Track client set
         _clients[agentId].add(clientAddress);
 
-        emit NewFeedback(agentId, clientAddress, score, tag1, tag2, uri);
+        emit NewFeedback(agentId, clientAddress, score, tag1, tag2, fileuri, filehash);
     }
 
     /// @inheritdoc IReputationRegistry
@@ -127,7 +134,8 @@ contract ReputationRegistry is IReputationRegistry {
         uint256 agentId,
         address clientAddress,
         uint64 feedbackIndex,
-        string calldata responseUri
+        string calldata responseUri,
+        bytes32 responseHash
     ) external override {
         require(_exists(agentId), "agent !exists");
         require(feedbackIndex < _feedback[agentId][clientAddress].length, "index OOB");
@@ -265,8 +273,8 @@ contract ReputationRegistry is IReputationRegistry {
     }
 
     /// @inheritdoc IReputationRegistry
-    function getIdentityRegistry() external view override returns (uint64, address) {
-        return (_chainId, address(_idRegistry));
+    function getIdentityRegistry() external view override returns (address) {
+        return address(_idRegistry);
     }
 
     // ---------- Internal helpers ----------
@@ -293,6 +301,8 @@ contract ReputationRegistry is IReputationRegistry {
         address clientAddress,
         uint64 indexLimit,
         uint64 expiry,
+        uint64 chainId,
+        address identityRegistry,
         address signer
     ) internal view returns (bytes32) {
         // Domain-separated EIP-191 hash: keccak256(
@@ -301,9 +311,9 @@ contract ReputationRegistry is IReputationRegistry {
         bytes32 inner = keccak256(
             abi.encode(
                 FEEDBACK_DOMAIN,
-                _chainId,
+                chainId,
                 address(this),
-                address(_idRegistry),
+                identityRegistry,
                 agentId,
                 clientAddress,
                 indexLimit,
@@ -399,12 +409,14 @@ contract ReputationRegistry is IReputationRegistry {
             address clientAddress,
             uint64 indexLimit,
             uint64 expiry,
+            uint64 chainId,
+            address identityRegistry,
             address signer,
             bytes memory signature
         )
     {
         // Tight ABI decoding as documented in giveFeedback()
-        (agentId, clientAddress, indexLimit, expiry, signer, signature) =
-            abi.decode(blob, (uint256, address, uint64, uint64, address, bytes));
+        (agentId, clientAddress, indexLimit, expiry, chainId, identityRegistry, signer, signature) =
+            abi.decode(blob, (uint256, address, uint64, uint64, uint64, address, address, bytes));
     }
 }

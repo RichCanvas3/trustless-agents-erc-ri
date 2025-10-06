@@ -35,28 +35,26 @@ contract IdentityRegistry is ERC721, ERC721URIStorage, Ownable, IIdentityRegistr
     }
 
     // ----------
-    // Minting (admin)
+    // Registration
     // ----------
 
-    function mint(address to) external override onlyOwner returns (uint256 agentId) {
-        agentId = ++_nextId;
-        _safeMint(to, agentId);
-    }
-
-    function mintWithURI(address to, string calldata uri)
+    function register(string calldata tokenURI_, MetadataEntry[] calldata metadata)
         external
         override
-        onlyOwner
         returns (uint256 agentId)
     {
         agentId = ++_nextId;
-        _safeMint(to, agentId);
-        _setTokenURI(agentId, uri);
-    }
+        _safeMint(msg.sender, agentId);
+        _setTokenURI(agentId, tokenURI_);
 
-    function setNextId(uint256 nextId_) external override onlyOwner {
-        require(nextId_ >= _nextId, "decreasing nextId");
-        _nextId = nextId_;
+        // Optional metadata entries
+        for (uint256 i = 0; i < metadata.length; i++) {
+            bytes32 k = keccak256(bytes(metadata[i].key));
+            _metadata[agentId][k] = bytes(metadata[i].value);
+            emit MetadataSet(agentId, metadata[i].key, metadata[i].value);
+        }
+
+        emit Registered(agentId, tokenURI_, msg.sender);
     }
 
     // ----------
@@ -69,32 +67,29 @@ contract IdentityRegistry is ERC721, ERC721URIStorage, Ownable, IIdentityRegistr
     }
 
     // ----------
-    // On-chain metadata
+    // On-chain metadata (string)
     // ----------
 
     function setMetadata(
         uint256 agentId,
-        bytes32 key,
-        bytes calldata value
+        string calldata key,
+        string calldata value
     ) external override {
         _requireControllerOrOperator(agentId);
-        _metadata[agentId][key] = value;
+        bytes32 k = keccak256(bytes(key));
+        _metadata[agentId][k] = bytes(value);
         emit MetadataSet(agentId, key, value);
     }
 
-    function deleteMetadata(uint256 agentId, bytes32 key) external override {
-        _requireControllerOrOperator(agentId);
-        delete _metadata[agentId][key];
-        emit MetadataDeleted(agentId, key);
-    }
-
-    function getMetadata(uint256 agentId, bytes32 key)
+    function getMetadata(uint256 agentId, string calldata key)
         external
         view
         override
-        returns (bytes memory)
+        returns (string memory)
     {
-        return _metadata[agentId][key];
+        bytes32 k = keccak256(bytes(key));
+        bytes memory v = _metadata[agentId][k];
+        return string(v);
     }
 
     // ----------

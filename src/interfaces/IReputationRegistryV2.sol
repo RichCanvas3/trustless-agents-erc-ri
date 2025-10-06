@@ -13,7 +13,8 @@ interface IReputationRegistry {
         uint8   score,
         bytes32 indexed tag1,
         bytes32 tag2,
-        string  uri
+        string  fileuri,
+        bytes32 filehash
     );
 
     /// @notice Emitted when feedback at index is revoked by the original client
@@ -39,14 +40,16 @@ interface IReputationRegistry {
     /// @param score   0..100
     /// @param tag1    Optional indexed tag
     /// @param tag2    Optional tag
-    /// @param uri     Optional off-chain JSON (IPFS/HTTPS)
+    /// @param fileuri Optional off-chain JSON (IPFS/HTTPS)
+    /// @param filehash Optional SHA-256 hash of file content (omit for IPFS URIs)
     /// @param feedbackAuth Authorization bytes produced by agent owner/operator
     function giveFeedback(
         uint256 agentId,
         uint8 score,
         bytes32 tag1,
         bytes32 tag2,
-        string calldata uri,
+        string calldata fileuri,
+        bytes32 filehash,
         bytes calldata feedbackAuth
     ) external;
 
@@ -58,7 +61,8 @@ interface IReputationRegistry {
         uint256 agentId,
         address clientAddress,
         uint64 feedbackIndex,
-        string calldata responseUri
+        string calldata responseUri,
+        bytes32 responseHash
     ) external;
 
     // -------- Read API --------
@@ -110,5 +114,5 @@ interface IReputationRegistry {
     // -------- Binding to Identity Registry --------
 
     /// @notice The bound Identity Registry (chainId + contract address)
-    function getIdentityRegistry() external view returns (uint64 chainId, address identityRegistry);
+    function getIdentityRegistry() external view returns (address identityRegistry);
 }

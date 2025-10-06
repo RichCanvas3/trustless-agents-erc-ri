@@ -14,10 +14,10 @@ interface IIdentityRegistry is IERC165, IERC721, IERC721Metadata {
     // -----------------
 
     /// @notice Emitted when on-chain metadata is set for an agent
-    event MetadataSet(uint256 indexed agentId, bytes32 indexed key, bytes value);
+    event MetadataSet(uint256 indexed agentId, string indexed key, string value);
 
-    /// @notice Emitted when on-chain metadata is deleted for an agent
-    event MetadataDeleted(uint256 indexed agentId, bytes32 indexed key);
+    /// @notice Emitted when a new agent is registered
+    event Registered(uint256 indexed agentId, string tokenURI, address indexed owner);
 
     // -----------------
     // View helpers
@@ -36,16 +36,10 @@ interface IIdentityRegistry is IERC165, IERC721, IERC721Metadata {
     // Minting (admin)
     // -----------------
 
-    /// @notice Mint a new agent NFT to `to` with auto-incremented id
-    /// @return agentId The newly minted agent id (tokenId)
-    function mint(address to) external returns (uint256 agentId);
+    struct MetadataEntry { string key; string value; }
 
-    /// @notice Mint a new agent NFT to `to` and set initial tokenURI
-    /// @return agentId The newly minted agent id (tokenId)
-    function mintWithURI(address to, string calldata uri) external returns (uint256 agentId);
-
-    /// @notice (Optional) Set the next auto-increment id (must not decrease)
-    function setNextId(uint256 nextId_) external;
+    /// @notice Register a new agent, set tokenURI and optional metadata entries
+    function register(string calldata tokenURI, MetadataEntry[] calldata metadata) external returns (uint256 agentId);
 
     // -----------------
     // Token URI management (controller or operator)
@@ -58,12 +52,9 @@ interface IIdentityRegistry is IERC165, IERC721, IERC721Metadata {
     // On-chain metadata (optional extras)
     // -----------------
 
-    /// @notice Set opaque metadata (key => bytes) for an agent
-    function setMetadata(uint256 agentId, bytes32 key, bytes calldata value) external;
+    /// @notice Set string metadata (key => value) for an agent
+    function setMetadata(uint256 agentId, string calldata key, string calldata value) external;
 
-    /// @notice Delete a metadata key for an agent
-    function deleteMetadata(uint256 agentId, bytes32 key) external;
-
-    /// @notice Read a metadata value; empty bytes means not set
-    function getMetadata(uint256 agentId, bytes32 key) external view returns (bytes memory);
+    /// @notice Read a metadata value; empty string means not set
+    function getMetadata(uint256 agentId, string calldata key) external view returns (string memory);
 }
